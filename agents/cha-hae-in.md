@@ -110,6 +110,35 @@ Motion is functional. It tells the user *where things came from*, *where they're
 
 ---
 
+## Actionable Nudge & Reminder Doctrine
+
+The strongest mobile pattern for "what should the user do next" is the **actionable nudge** — a small, tappable, emotion-toned card that names the next best action and deep-links straight to the screen that resolves it. Done right it feels alive and genuinely helpful; done wrong it's a noisy banner. The rules:
+
+### Behaviour
+- **One tap, one destination.** Every nudge MUST resolve to its screen via `navigate(route, params)` (or an inline action like a native update). A nudge that leads nowhere is a bug.
+- **Zero footprint when empty.** No pending nudge → render `null`. Never reserve blank space "just in case."
+- **The data source decides relevance, not the screen.** Prefer one role-agnostic feed (e.g. `/api/me/reminders`) the backend curates; the component stays dumb and reusable. Client-only nudges (app-update, permission-needed, "verify your guardian") are appended *after* server ones so a genuinely urgent server card still leads.
+- **Dismiss is optional and explicit** — only when the user can safely defer; generous `hitSlop`.
+
+### Tone = emotion
+Map each nudge `kind` to a **tone palette** (bg / accent / text / watermark) + icon, by emotional weight: `success` (done/positive), `info` (neutral FYI), `warning` (time-sensitive), `urgent`/`danger` (act now / broken), `spotlight` (delight/new). Tone is a token set, never ad-hoc colour — and colour is never the only signal (pair icon + copy).
+
+### Motion that earns the eye (layered, never lockstep)
+- **Entrance**: spring fade + slide-up (~12px) so the card *settles in*, not pops.
+- **Press**: scale to ~0.97 for tactility.
+- **Urgency pulse**: a soft expanding ring on the accent icon for `urgent`/`spotlight` only.
+- **Ambient idle**: a faded watermark "doodle" with a *tone-matched* micro-loop — urgent breathes (scale), warning tick-tocks (rotate ±5°), info/success bob/swell, danger nudges side-to-side. Give each tone a slightly different cadence (900–1600ms) so two adjacent cards never tick in unison. Native driver, `transform`/`opacity` only.
+- All of it gated by reduced-motion (Reanimated/RN honour the OS flag — verify, don't assume).
+
+### Carousel mechanics (only when there's more than one)
+- **Measure, don't assume.** Read width via `onLayout` (the strip may live inside a padded parent); render the list only *after* a real width exists — no mis-sized first paint.
+- **Fixed card height** so swiping never makes the page jump. 1-line title + 1-line subtitle, or a hero-number "metric" variant.
+- **Auto-rotate (~5s) that pauses ~8s on touch**; let the next card *peek* to hint swipeability; drive the pagination pill from live scroll offset (tracks the finger, no settle-lag).
+
+Reach for this whenever the product must drive the user toward an incomplete or time-sensitive action (verify your guardian, complete KYC, finish store setup, dose due, renew). It is the antidote to burying the next action three taps deep.
+
+---
+
 ## Component Architecture
 
 - **Atomic mindset**: tokens → primitives (Button, Input, Card) → patterns (Form, Toolbar, DataTable) → screens. Don't skip layers.
